@@ -823,7 +823,7 @@ const BrotherModal = ({ open, onClose, onSuccess }) => {
       setOk(true); setErr(false);
       setTimeout(()=>{ onClose(); onSuccess(); setOk(false); setVal(""); setMsg(""); },1600);
     } else if(val.length>=2){
-      setMsg("✗ Bhai says: \"Nice try! Wrong word.\" 😎");
+      setMsg("✗ \"Nice try! Wrong word.\" 😎");
       setOk(false); setErr(true);
       setTimeout(()=>setErr(false),700);
     }
@@ -836,7 +836,7 @@ const BrotherModal = ({ open, onClose, onSuccess }) => {
         <button onClick={onClose} style={{ position:"absolute",top:18,right:22,background:"none",border:"none",color:"rgba(255,255,255,.28)",fontSize:24,cursor:"pointer" }}>✕</button>
         <div style={{ fontSize:90,lineHeight:1,marginBottom:22,animation:"drift 3s ease-in-out infinite" }}>🕵️‍♂️</div>
         <div style={{ display:"inline-block",padding:"5px 18px",borderRadius:100,background:"rgba(255,77,166,.1)",border:"1px solid rgba(255,77,166,.28)",fontFamily:"'Space Mono',monospace",fontSize:10,letterSpacing:3,color:"var(--pink)",marginBottom:18 }}>ACCESS DENIED</div>
-        <h3 style={{ fontFamily:"'Orbitron',monospace",fontSize:21,color:"#fff",marginBottom:14 }}>Brother's Gate 🔐</h3>
+        <h3 style={{ fontFamily:"'Orbitron',monospace",fontSize:21,color:"#fff",marginBottom:14 }}>Best Friend's Gate 🔐</h3>
         <p style={{ fontFamily:"'Caveat',cursive",fontSize:20,color:"rgba(255,255,255,.52)",lineHeight:1.75,marginBottom:26 }}>
           Only the real Shaloni knows the secret word from <em style={{color:"var(--pink)"}}>Atomic Habits</em>.<br/>
           <span style={{ fontSize:16,color:"rgba(255,255,255,.32)" }}>Hint: the foundation of identity-based change...</span>
