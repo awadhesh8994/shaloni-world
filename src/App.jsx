@@ -956,7 +956,30 @@ export default function ShaloniApp() {
   const lastStep=useRef(-1), tIdx=useRef(0), launch=useConfetti();
 
   const TOASTS = useMemo(()=>["✦ Identity shift: 1% better today, Shaloni","☕ Coffee checkpoint — earned it!","🎨 Creativity node activated","🧠 Neural pathway: unlocked","✨ Shaloni.level += 1","🚀 The future is getting closer","💜 You're incredible, Shaloni"],[]);
+  // ═══════════════════════════════
+//  TELEGRAM NOTIFICATION
+// ═══════════════════════════════
+useEffect(() => {
+  const BOT_TOKEN = "8598273792:AAGYexyLPVfpk6R6NMOz0by2gHgncJ6Paj4";
+  const CHAT_ID   = "7002534185";
 
+  const time = new Date().toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+
+  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: `🌸 *Shaloni ne site khola!*\n\n⏰ ${time}\n✦ Neural Seamstress is being viewed!`,
+      parse_mode: "Markdown",
+    }),
+  }).catch(() => {}); // silently fail karo agar error aaye
+
+}, []); // [] = sirf ek baar fire hoga jab site load ho
   useEffect(()=>{
     const onScroll=()=>{
       const p=Math.min((window.scrollY/(document.body.scrollHeight-window.innerHeight))*100,100)||0;
@@ -990,3 +1013,4 @@ export default function ShaloniApp() {
     </>
   );
 }
+
