@@ -201,14 +201,14 @@ const useReveal = () => {
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   FLOATING MESSAGE FROM 
+   FLOATING MESSAGE FROM AWADHESH
 ═══════════════════════════════════════════════════════════════ */
 const FloatingMessage = () => {
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const [showTooltip, setShowTooltip] = useState(true);
   const [typed, setTyped] = useState("");
-  const FULL_MSG = "You think this site found you by accident? Nothing about you is accidental, Shaloni. The way you sketch what others can barely imagine. The way you see algorithms where others see chaos. The way even your coffee order probably has a pattern. Someone noticed all of it — every single detail. And what they saw? Absolutely terrifying levels of brilliance. This entire universe was built for exactly one person. You already know who that is. 🔮 Consider yourself known."
+  const FULL_MSG = "This site didn't appear randomly in your life. Nothing that matters ever does. Someone out there has been watching brilliance happen in real time — in every sketch, every model, every cup of coffee that fuelled something extraordinary. And they made a decision: the world needed proof that people like you exist. So here it is. Your proof. Your universe. Built by someone who saw you clearly — maybe even before you saw yourself. 🔮";
 
   useEffect(() => {
     const t = setTimeout(() => { setOpen(true); setShowTooltip(false); }, 2800);
@@ -266,7 +266,6 @@ const FloatingMessage = () => {
             <button className="float-close" onClick={() => setDismissed(true)}>✕</button>
 
             {/* From badge */}
-            {/* From badge */}
 <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:22 }}>
   <div style={{ width:42, height:42, borderRadius:"50%", background:"linear-gradient(135deg,#ff4da6,#9d4edd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, boxShadow:"0 0 20px rgba(255,77,166,.5)", flexShrink:0 }}>
     🕵️
@@ -281,7 +280,15 @@ const FloatingMessage = () => {
 </div>
 
             {/* Divider */}
-            <div style={{ height:1, background:"linear-gradient(to right, transparent, rgba(255,77,166,.4), transparent)", marginBottom:22 }} />
+            <div style={{ height:1, background:"linear-gradient(to right, transparent, rgba(255,77,166,.4), transparent)", marginBottom:18 }} />
+
+            {/* Quote banner */}
+            <div style={{ textAlign:"center", marginBottom:18, padding:"10px 16px", borderRadius:12, background:"linear-gradient(135deg,rgba(255,77,166,.08),rgba(157,78,221,.08))", border:"1px solid rgba(255,77,166,.15)", position:"relative" }}>
+              <span style={{ position:"absolute", top:-10, left:"50%", transform:"translateX(-50%)", fontSize:22, lineHeight:1 }}>✨</span>
+              <p style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:"clamp(14px,2.5vw,18px)", color:"rgba(255,255,255,.85)", letterSpacing:.5, lineHeight:1.6 }}>
+                "Good thoughts keep a person happy"
+              </p>
+            </div>
 
             {/* To line */}
             <p style={{ fontFamily:"'Caveat',cursive", fontSize:15, color:"rgba(255,255,255,.35)", marginBottom:14, letterSpacing:1 }}>
@@ -298,7 +305,7 @@ const FloatingMessage = () => {
             <div style={{ marginTop:24, paddingTop:16, borderTop:"1px solid rgba(255,255,255,.07)", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
               <div>
                <p style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:18, color:"var(--pink-light)", lineHeight:1 }}>— Someone who noticed ✨</p>
-<p style={{ fontFamily:"'Space Mono',monospace", fontSize:9, color:"rgba(255,255,255,.25)", marginTop:4, letterSpacing:2 }}>// the creator of this world ✦</p> </div>
+<p style={{ fontFamily:"'Space Mono',monospace", fontSize:9, color:"rgba(255,255,255,.25)", marginTop:4, letterSpacing:2 }}>// the creator of this world ✦</p></div>
               <div style={{ display:"flex", gap:6 }}>
                 {["🌸","☕","✨","💜"].map((e, i) => (
                   <span key={i} style={{ fontSize:20, animation:`heartbeat ${1.4+i*.2}s ${i*.15}s ease-in-out infinite` }}>{e}</span>
@@ -975,7 +982,6 @@ export default function ShaloniApp() {
   }).catch(() => {});
 
 }, []);
-
   const TOASTS = useMemo(()=>["✦ Identity shift: 1% better today, Shaloni","☕ Coffee checkpoint — earned it!","🎨 Creativity node activated","🧠 Neural pathway: unlocked","✨ Shaloni.level += 1","🚀 The future is getting closer","💜 You're incredible, Shaloni"],[]);
 
   useEffect(()=>{
