@@ -1,50 +1,19 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
-/* ═══════════════════════════════════════════════════════════════
-   GLOBAL STYLES — FULLY CENTERED + RESPONSIVE
-═══════════════════════════════════════════════════════════════ */
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Space+Grotesk:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&family=Caveat:wght@400;600;700&family=Space+Mono:wght@400;700&display=swap');
 
   *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-  html, body {
-    width:100%;
-    overflow-x:hidden;
-    scroll-behavior:smooth;
-  }
-
-  body {
-    background:#05050f;
-    color:#fff;
-    font-family:'Space Grotesk',sans-serif;
-    cursor:none;
-    /* KEY FIX: Remove any default alignment that causes left-shift */
-    display:block;
-    text-align:left;
-  }
-
-  /* KEY FIX: Root container must be full width */
-  #root {
-    width:100%;
-    min-height:100vh;
-    overflow-x:hidden;
-  }
-
+  html, body { width:100%; overflow-x:hidden; scroll-behavior:smooth; }
+  body { background:#05050f; color:#fff; font-family:'Space Grotesk',sans-serif; cursor:none; display:block; text-align:left; }
+  #root { width:100%; min-height:100vh; overflow-x:hidden; }
   ::-webkit-scrollbar { width:0; }
-
   :root {
-    --pink:#ff4da6;
-    --pink-light:#ff80c0;
-    --pink-glow:rgba(255,77,166,.6);
-    --cyan:#00e5ff;
-    --purple:#9d4edd;
-    --gold:#ffc857;
-    --glass-bg:rgba(255,255,255,.032);
-    --glass-border:rgba(255,255,255,.08);
+    --pink:#ff4da6; --pink-light:#ff80c0; --pink-glow:rgba(255,77,166,.6);
+    --cyan:#00e5ff; --purple:#9d4edd; --gold:#ffc857;
+    --glass-bg:rgba(255,255,255,.032); --glass-border:rgba(255,255,255,.08);
   }
 
-  /* ── KEYFRAMES ── */
   @keyframes drift      { 0%,100%{transform:translateY(0)rotate(0deg)} 33%{transform:translateY(-18px)rotate(1deg)} 66%{transform:translateY(-8px)rotate(-1deg)} }
   @keyframes spinCW     { to{transform:rotate(360deg)} }
   @keyframes spinCCW    { to{transform:rotate(-360deg)} }
@@ -64,7 +33,17 @@ const STYLES = `
   @keyframes roleSwap   { 0%{opacity:0;transform:translateY(14px)} 15%,85%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-14px)} }
   @keyframes orbitNode  { from{transform:rotate(0deg)translateX(var(--r))rotate(0deg)} to{transform:rotate(360deg)translateX(var(--r))rotate(-360deg)} }
 
-  /* ── LAYOUT HELPERS ── */
+  /* ── FLOATING MESSAGE KEYFRAMES ── */
+  @keyframes floatIn    { 0%{opacity:0;transform:translateY(40px) scale(.92)} 100%{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes floatBob   { 0%,100%{transform:translateY(0px)} 50%{transform:translateY(-10px)} }
+  @keyframes heartbeat  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+  @keyframes inkWrite   { from{stroke-dashoffset:1200} to{stroke-dashoffset:0} }
+  @keyframes glowPulse  { 0%,100%{box-shadow:0 0 40px rgba(255,77,166,.3),0 0 80px rgba(157,78,221,.15)} 50%{box-shadow:0 0 70px rgba(255,77,166,.55),0 0 120px rgba(157,78,221,.3)} }
+  @keyframes starFloat  { 0%{transform:translateY(0) rotate(0deg); opacity:.7} 100%{transform:translateY(-120px) rotate(360deg); opacity:0} }
+  @keyframes penDraw    { 0%{width:0} 100%{width:100%} }
+  @keyframes msgDismiss { to{opacity:0;transform:translateY(30px) scale(.95);pointer-events:none} }
+  @keyframes paperFold  { 0%{transform:perspective(600px) rotateX(8deg) translateY(20px); opacity:0} 100%{transform:perspective(600px) rotateX(0deg) translateY(0); opacity:1} }
+
   .neon-gradient {
     background:linear-gradient(135deg,#ff4da6,#c77dff,#00e5ff,#ff4da6);
     background-size:300% 300%;
@@ -73,8 +52,6 @@ const STYLES = `
     -webkit-text-fill-color:transparent;
     background-clip:text;
   }
-
-  /* Glass card */
   .glass {
     background:var(--glass-bg);
     backdrop-filter:blur(20px) saturate(160%);
@@ -84,151 +61,118 @@ const STYLES = `
     position:relative;
     overflow:hidden;
   }
-  .glass::after {
-    content:''; position:absolute; inset:0;
-    background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);
-    pointer-events:none; border-radius:inherit;
-  }
-
-  .shim {
-    position:absolute; top:0; width:45%; height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);
-    animation:shimAnim 3.5s ease-in-out infinite;
-    pointer-events:none;
-  }
-
-  .card-hover {
-    transition:transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .4s;
-  }
-  .card-hover:hover {
-    transform:translateY(-8px) scale(1.01);
-    box-shadow:0 24px 80px rgba(255,77,166,.16), 0 0 0 1px rgba(255,77,166,.1);
-  }
-
-  /* Reveal */
+  .glass::after { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%); pointer-events:none; border-radius:inherit; }
+  .shim { position:absolute; top:0; width:45%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent); animation:shimAnim 3.5s ease-in-out infinite; pointer-events:none; }
+  .card-hover { transition:transform .4s cubic-bezier(.34,1.56,.64,1), box-shadow .4s; }
+  .card-hover:hover { transform:translateY(-8px) scale(1.01); box-shadow:0 24px 80px rgba(255,77,166,.16), 0 0 0 1px rgba(255,77,166,.1); }
   .rv { opacity:0; transform:translateY(50px); transition:opacity .9s cubic-bezier(.16,1,.3,1), transform .9s cubic-bezier(.16,1,.3,1); }
   .rv.in { opacity:1; transform:translateY(0); }
-
-  /* Buttons */
-  .btn-p {
-    background:linear-gradient(135deg,#ff4da6,#9d4edd);
-    border:none; border-radius:100px; color:#fff;
-    font-family:'Space Grotesk',sans-serif; font-weight:700;
-    cursor:pointer; white-space:nowrap;
-    transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
-  }
+  .btn-p { background:linear-gradient(135deg,#ff4da6,#9d4edd); border:none; border-radius:100px; color:#fff; font-family:'Space Grotesk',sans-serif; font-weight:700; cursor:pointer; white-space:nowrap; transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s; }
   .btn-p:hover { transform:scale(1.06) translateY(-2px); box-shadow:0 20px 60px rgba(255,77,166,.5); }
-
-  .btn-g {
-    background:transparent; border:1.5px solid rgba(0,229,255,.4);
-    border-radius:100px; color:#00e5ff;
-    font-family:'Space Grotesk',sans-serif; font-weight:600;
-    cursor:pointer; white-space:nowrap;
-    transition:all .3s cubic-bezier(.34,1.56,.64,1);
-  }
+  .btn-g { background:transparent; border:1.5px solid rgba(0,229,255,.4); border-radius:100px; color:#00e5ff; font-family:'Space Grotesk',sans-serif; font-weight:600; cursor:pointer; white-space:nowrap; transition:all .3s cubic-bezier(.34,1.56,.64,1); }
   .btn-g:hover { border-color:#00e5ff; background:rgba(0,229,255,.08); transform:scale(1.06) translateY(-2px); box-shadow:0 14px 40px rgba(0,229,255,.25); }
-
-  /* Node pill */
-  .npill {
-    position:absolute; border-radius:50px; cursor:pointer;
-    font-family:'Space Mono',monospace;
-    transition:all .35s cubic-bezier(.34,1.56,.64,1);
-    white-space:nowrap; z-index:3; user-select:none;
-  }
+  .npill { position:absolute; border-radius:50px; cursor:pointer; font-family:'Space Mono',monospace; transition:all .35s cubic-bezier(.34,1.56,.64,1); white-space:nowrap; z-index:3; user-select:none; }
   .npill:hover { z-index:10; }
-
-  /* ─────────────────────────────
-     CENTERED SECTION WRAPPER
-     This is the KEY fix for left-alignment
-  ───────────────────────────── */
-  .wrap {
-    width:100%;
-    max-width:1260px;
-    margin-left:auto;
-    margin-right:auto;
-    padding-left:clamp(16px,4vw,40px);
-    padding-right:clamp(16px,4vw,40px);
-  }
-  .wrap-md {
-    width:100%;
-    max-width:980px;
-    margin-left:auto;
-    margin-right:auto;
-    padding-left:clamp(16px,4vw,40px);
-    padding-right:clamp(16px,4vw,40px);
-  }
-  .wrap-sm {
-    width:100%;
-    max-width:760px;
-    margin-left:auto;
-    margin-right:auto;
-    padding-left:clamp(16px,4vw,40px);
-    padding-right:clamp(16px,4vw,40px);
-  }
-
-  /* ─────────────────────────────
-     BENTO GRID — fully responsive
-  ───────────────────────────── */
-  .bento {
-    display:grid;
-    gap:14px;
-    width:100%;
-  }
-
-  /* Desktop ≥ 1024px: 12 columns */
-  @media (min-width:1024px) {
-    .bento { grid-template-columns:repeat(12,1fr); }
-    .c7  { grid-column:span 7; }
-    .c5  { grid-column:span 5; grid-row:span 2; }
-    .c3  { grid-column:span 3; }
-    .c4  { grid-column:span 4; }
-    .c8  { grid-column:span 8; }
-    .c12 { grid-column:span 12; }
-  }
-
-  /* Tablet 640–1023px: 2 columns */
-  @media (min-width:640px) and (max-width:1023px) {
-    .bento { grid-template-columns:1fr 1fr; }
-    .c7,.c5,.c8,.c12 { grid-column:span 2; }
-    .c3,.c4 { grid-column:span 1; }
-  }
-
-  /* Mobile < 640px: 1 column */
-  @media (max-width:639px) {
-    .bento { grid-template-columns:1fr; }
-    .c7,.c5,.c3,.c4,.c8,.c12 { grid-column:span 1; }
-  }
-
-  /* ─────────────────────────────
-     NEURAL BOX HEIGHT
-  ───────────────────────────── */
+  .wrap    { width:100%; max-width:1260px; margin-left:auto; margin-right:auto; padding-left:clamp(16px,4vw,40px); padding-right:clamp(16px,4vw,40px); }
+  .wrap-md { width:100%; max-width:980px;  margin-left:auto; margin-right:auto; padding-left:clamp(16px,4vw,40px); padding-right:clamp(16px,4vw,40px); }
+  .wrap-sm { width:100%; max-width:760px;  margin-left:auto; margin-right:auto; padding-left:clamp(16px,4vw,40px); padding-right:clamp(16px,4vw,40px); }
+  .bento { display:grid; gap:14px; width:100%; }
+  @media (min-width:1024px) { .bento{grid-template-columns:repeat(12,1fr)} .c7{grid-column:span 7} .c5{grid-column:span 5;grid-row:span 2} .c3{grid-column:span 3} .c4{grid-column:span 4} .c8{grid-column:span 8} .c12{grid-column:span 12} }
+  @media (min-width:640px) and (max-width:1023px) { .bento{grid-template-columns:1fr 1fr} .c7,.c5,.c8,.c12{grid-column:span 2} .c3,.c4{grid-column:span 1} }
+  @media (max-width:639px) { .bento{grid-template-columns:1fr} .c7,.c5,.c3,.c4,.c8,.c12{grid-column:span 1} }
   .nbox { position:relative; height:440px; }
-  @media (max-width:700px) { .nbox { height:360px; } }
-  @media (max-width:460px) { .nbox { height:300px; } }
-
-  /* Node sizes on mobile */
-  @media (max-width:700px)  { .npill { font-size:10px !important; padding:7px 12px !important; } }
-  @media (max-width:460px)  { .npill { font-size:9px  !important; padding:5px 10px  !important; } }
-
-  /* ─────────────────────────────
-     HERO — hide orbits on small
-  ───────────────────────────── */
+  @media (max-width:700px) { .nbox{height:360px} }
+  @media (max-width:460px) { .nbox{height:300px} }
+  @media (max-width:700px)  { .npill{font-size:10px !important;padding:7px 12px !important} }
+  @media (max-width:460px)  { .npill{font-size:9px  !important;padding:5px 10px  !important} }
   .orbits { pointer-events:none; }
-  @media (max-width:540px) { .orbits { display:none; } }
-
-  /* Stitch game area */
+  @media (max-width:540px) { .orbits{display:none} }
   .sarea { position:relative; height:180px; }
-  @media (max-width:480px) { .sarea { height:150px; } }
-
-  /* Scroll thread — hide on touch */
-  @media (max-width:480px) { .sthread { display:none !important; } }
-
-  /* Avatar size */
+  @media (max-width:480px) { .sarea{height:150px} }
+  @media (max-width:480px) { .sthread{display:none !important} }
   .avatar-wrap { position:relative; width:220px; height:220px; margin:48px auto 0; flex-shrink:0; }
-  @media (max-width:480px) { .avatar-wrap { width:170px; height:170px; margin:36px auto 0; } }
-
-  /* General text overflow fix */
+  @media (max-width:480px) { .avatar-wrap{width:170px;height:170px;margin:36px auto 0} }
   p, span, h1, h2, h3 { word-break:break-word; }
+
+  /* ── FLOATING MESSAGE STYLES ── */
+  .float-msg-overlay {
+    position:fixed; inset:0; z-index:99990;
+    display:flex; align-items:center; justify-content:center;
+    padding:clamp(16px,4vw,32px);
+    background:radial-gradient(ellipse at center, rgba(157,78,221,.18) 0%, rgba(0,0,0,.82) 100%);
+    backdrop-filter:blur(18px);
+    animation:floatIn .7s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .float-msg-card {
+    position:relative;
+    max-width:520px; width:100%;
+    padding:clamp(28px,5vw,52px) clamp(24px,4vw,46px);
+    background:linear-gradient(145deg, rgba(25,8,40,.97), rgba(10,4,28,.98));
+    border:1px solid rgba(255,77,166,.28);
+    border-radius:28px;
+    animation:paperFold .6s .15s cubic-bezier(.16,1,.3,1) both, glowPulse 3s 1s ease-in-out infinite;
+    overflow:visible;
+  }
+  .float-msg-card::before {
+    content:'';
+    position:absolute; inset:-1px;
+    border-radius:29px;
+    background:linear-gradient(135deg,rgba(255,77,166,.35),rgba(157,78,221,.2),rgba(0,229,255,.15),rgba(255,77,166,.35));
+    background-size:300% 300%;
+    animation:gradShift 4s ease infinite;
+    z-index:-1;
+    filter:blur(1px);
+  }
+  .float-msg-stars span {
+    position:absolute;
+    font-size:12px;
+    animation:starFloat linear infinite;
+    opacity:0;
+    pointer-events:none;
+  }
+  .float-close {
+    position:absolute; top:14px; right:18px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+    border-radius:50%; width:32px; height:32px;
+    color:rgba(255,255,255,.4); font-size:16px;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:all .25s;
+  }
+  .float-close:hover { background:rgba(255,77,166,.15); color:#ff80c0; border-color:rgba(255,77,166,.35); }
+  .ink-underline {
+    display:inline-block; position:relative;
+  }
+  .ink-underline::after {
+    content:'';
+    position:absolute; bottom:-3px; left:0; height:2px;
+    background:linear-gradient(90deg,#ff4da6,#c77dff);
+    border-radius:2px;
+    animation:penDraw 1.2s 1.4s cubic-bezier(.16,1,.3,1) both;
+  }
+  .float-trigger {
+    position:fixed;
+    bottom:80px; right:20px;
+    z-index:9999;
+    width:58px; height:58px;
+    border-radius:50%;
+    background:linear-gradient(135deg,#ff4da6,#9d4edd);
+    border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:24px;
+    box-shadow:0 0 30px rgba(255,77,166,.55), 0 0 60px rgba(255,77,166,.2);
+    animation:floatBob 3s ease-in-out infinite, glowPulse 3s ease-in-out infinite;
+    transition:transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .float-trigger:hover { transform:scale(1.15); }
+  .float-trigger-tooltip {
+    position:absolute; right:68px; top:50%; transform:translateY(-50%);
+    background:rgba(255,77,166,.12); border:1px solid rgba(255,77,166,.3);
+    border-radius:20px; padding:5px 12px;
+    font-family:'Caveat',cursive; font-size:14px; color:#ff80c0;
+    white-space:nowrap; pointer-events:none;
+    opacity:0; transition:opacity .3s;
+  }
+  .float-trigger:hover .float-trigger-tooltip { opacity:1; }
 `;
 
 const InjectStyles = () => {
@@ -241,7 +185,6 @@ const InjectStyles = () => {
   return null;
 };
 
-/* ── Scroll reveal ── */
 const useReveal = () => {
   useEffect(() => {
     const obs = new IntersectionObserver(entries => {
@@ -258,7 +201,132 @@ const useReveal = () => {
 };
 
 /* ═══════════════════════════════════════════════════════════════
-   CURSOR (desktop only)
+   FLOATING MESSAGE FROM 
+═══════════════════════════════════════════════════════════════ */
+const FloatingMessage = () => {
+  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(true);
+  const [typed, setTyped] = useState("");
+  const FULL_MSG = "You think this site found you by accident? Nothing about you is accidental, Shaloni. The way you sketch what others can barely imagine. The way you see algorithms where others see chaos. The way even your coffee order probably has a pattern. Someone noticed all of it — every single detail. And what they saw? Absolutely terrifying levels of brilliance. This entire universe was built for exactly one person. You already know who that is. 🔮 Consider yourself known."
+
+  useEffect(() => {
+    const t = setTimeout(() => { setOpen(true); setShowTooltip(false); }, 2800);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Typewriter effect when opened
+  useEffect(() => {
+    if (!open) { setTyped(""); return; }
+    let i = 0;
+    setTyped("");
+    const id = setInterval(() => {
+      i++;
+      setTyped(FULL_MSG.slice(0, i));
+      if (i >= FULL_MSG.length) clearInterval(id);
+    }, 28);
+    return () => clearInterval(id);
+  }, [open]);
+
+  const STARS = ["✦","✧","★","🌸","💫","✨"];
+  const starPositions = [
+    {left:"8%",top:"10%",delay:"0s",dur:"4s"},{left:"85%",top:"15%",delay:"1s",dur:"5s"},
+    {left:"15%",top:"75%",delay:"2s",dur:"4.5s"},{left:"78%",top:"70%",delay:"0.5s",dur:"6s"},
+    {left:"50%",top:"5%",delay:"1.5s",dur:"3.8s"},{left:"92%",top:"45%",delay:"2.5s",dur:"5.2s"},
+  ];
+
+  return (
+    <>
+      {/* Floating trigger button */}
+      {!open && (
+        <button className="float-trigger" onClick={() => { setOpen(true); setShowTooltip(false); }}
+          onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)}>
+          💌
+          {showTooltip && (
+            <span className="float-trigger-tooltip">A message for you ✦</span>
+          )}
+        </button>
+      )}
+
+      {/* Message overlay */}
+      {open && !dismissed && (
+        <div className="float-msg-overlay" onClick={() => setDismissed(true)}>
+          <div className="float-msg-card" onClick={e => e.stopPropagation()}>
+
+            {/* Floating stars */}
+            <div className="float-msg-stars">
+              {starPositions.map((pos, i) => (
+                <span key={i} style={{ left:pos.left, top:pos.top, animationDelay:pos.delay, animationDuration:pos.dur }}>
+                  {STARS[i % STARS.length]}
+                </span>
+              ))}
+            </div>
+
+            {/* Close */}
+            <button className="float-close" onClick={() => setDismissed(true)}>✕</button>
+
+            {/* From badge */}
+            {/* From badge */}
+<div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:22 }}>
+  <div style={{ width:42, height:42, borderRadius:"50%", background:"linear-gradient(135deg,#ff4da6,#9d4edd)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, boxShadow:"0 0 20px rgba(255,77,166,.5)", flexShrink:0 }}>
+    🕵️
+  </div>
+  <div>
+    <p style={{ fontFamily:"'Space Mono',monospace", fontSize:9, letterSpacing:4, color:"rgba(255,77,166,.7)", textTransform:"uppercase", marginBottom:2 }}>// A message from</p>
+    <p style={{ fontFamily:"'Orbitron',monospace", fontWeight:700, fontSize:16, color:"#fff", letterSpacing:1 }}>
+      The Creator <span style={{ color:"var(--pink)" }}>✦</span>
+    </p>
+    <p style={{ fontFamily:"'Caveat',cursive", fontSize:12, color:"rgba(255,255,255,.3)", marginTop:2 }}>of this little universe 🌸</p>
+  </div>
+</div>
+
+            {/* Divider */}
+            <div style={{ height:1, background:"linear-gradient(to right, transparent, rgba(255,77,166,.4), transparent)", marginBottom:22 }} />
+
+            {/* To line */}
+            <p style={{ fontFamily:"'Caveat',cursive", fontSize:15, color:"rgba(255,255,255,.35)", marginBottom:14, letterSpacing:1 }}>
+              To: <span className="ink-underline" style={{ color:"#ff80c0", fontWeight:700 }}>Shaloni 🌸</span>
+            </p>
+
+            {/* The message with typewriter */}
+            <p style={{ fontFamily:"'Caveat',cursive", fontSize:"clamp(17px,2.8vw,22px)", color:"rgba(255,255,255,.88)", lineHeight:1.85, minHeight:120 }}>
+              {typed}
+              <span style={{ display:"inline-block", width:2, height:"1.1em", background:"#ff4da6", marginLeft:2, verticalAlign:"middle", animation:"blink 1s step-end infinite", opacity: typed.length >= FULL_MSG.length ? 0 : 1 }} />
+            </p>
+
+            {/* Signature */}
+            <div style={{ marginTop:24, paddingTop:16, borderTop:"1px solid rgba(255,255,255,.07)", display:"flex", justifyContent:"space-between", alignItems:"center", flexWrap:"wrap", gap:12 }}>
+              <div>
+               <p style={{ fontFamily:"'Playfair Display',serif", fontStyle:"italic", fontSize:18, color:"var(--pink-light)", lineHeight:1 }}>— Someone who noticed ✨</p>
+<p style={{ fontFamily:"'Space Mono',monospace", fontSize:9, color:"rgba(255,255,255,.25)", marginTop:4, letterSpacing:2 }}>// the creator of this world ✦</p> </div>
+              <div style={{ display:"flex", gap:6 }}>
+                {["🌸","☕","✨","💜"].map((e, i) => (
+                  <span key={i} style={{ fontSize:20, animation:`heartbeat ${1.4+i*.2}s ${i*.15}s ease-in-out infinite` }}>{e}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Dismiss hint */}
+            <p style={{ fontFamily:"'Space Mono',monospace", fontSize:8, color:"rgba(255,255,255,.15)", textAlign:"center", marginTop:18, letterSpacing:3 }}>
+              CLICK ANYWHERE TO CLOSE · ESC TO DISMISS
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Re-open button after dismissed */}
+      {dismissed && (
+        <button className="float-trigger" onClick={() => { setDismissed(false); setOpen(true); }}>
+          💌
+          <span className="float-trigger-tooltip">Read message again ✦</span>
+        </button>
+      )}
+    </>
+  );
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   CURSOR
 ═══════════════════════════════════════════════════════════════ */
 const Cursor = () => {
   const dot = useRef(null), ring = useRef(null);
@@ -342,7 +410,6 @@ const BgCanvas = () => {
   return <canvas ref={ref} style={{ position:"fixed",inset:0,zIndex:0,pointerEvents:"none" }} />;
 };
 
-/* ── Scroll thread ── */
 const ScrollThread = ({ pct }) => (
   <div className="sthread" style={{ position:"fixed",right:12,top:0,width:3,height:"100vh",zIndex:200,pointerEvents:"none" }}>
     <div style={{ position:"absolute",inset:0,background:"rgba(255,255,255,.03)",borderRadius:2 }} />
@@ -351,14 +418,12 @@ const ScrollThread = ({ pct }) => (
   </div>
 );
 
-/* ── Toast ── */
 const Toast = ({ msg, show }) => (
   <div style={{ position:"fixed",bottom:24,left:"50%",zIndex:9000,padding:"11px 26px",borderRadius:100,background:"rgba(255,77,166,.07)",backdropFilter:"blur(16px)",border:"1px solid rgba(255,77,166,.25)",fontFamily:"'Caveat',cursive",fontSize:18,color:"#ff80c0",maxWidth:"88vw",textOverflow:"ellipsis",overflow:"hidden",whiteSpace:"nowrap",pointerEvents:"none",opacity:show?1:0,transform:show?"translateX(-50%) translateY(0)":"translateX(-50%) translateY(16px)",transition:"opacity .5s,transform .5s" }}>
     {msg}
   </div>
 );
 
-/* ── Section header ── */
 const SectionHeader = ({ tag, title, sub, delay=0 }) => (
   <div className="rv" data-delay={delay} style={{ textAlign:"center",marginBottom:"clamp(32px,6vw,60px)",width:"100%" }}>
     <p style={{ fontFamily:"'Space Mono',monospace",fontSize:"clamp(9px,1.5vw,11px)",letterSpacing:6,color:"rgba(0,229,255,.7)",textTransform:"uppercase",marginBottom:12 }}>{tag}</p>
@@ -374,18 +439,13 @@ const Hero = ({ onEnter, onSurprise }) => {
   const [ri, setRi] = useState(0);
   const ROLES = ["Neural Seamstress ✦","AI / ML Engineer 🧠","Sketch Artist 🎨","Habit Architect 📖","Coffee Connoisseur ☕","BBDU's Finest 🏛️"];
   useEffect(() => { const id = setInterval(() => setRi(r => (r+1)%ROLES.length), 2600); return () => clearInterval(id); }, []);
-
   return (
     <section id="hero" style={{ minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",position:"relative",zIndex:1,padding:"60px clamp(16px,4vw,40px) 80px",textAlign:"center",width:"100%" }}>
-
-      {/* Orbiting dots */}
       <div className="orbits" style={{ position:"absolute",top:"50%",left:"50%",width:0,height:0 }}>
         {[0,1,2,3,4,5].map(i => (
           <div key={i} style={{ position:"absolute",width:i%2===0?7:5,height:i%2===0?7:5,borderRadius:"50%",background:i%3===0?"#ff4da6":i%3===1?"#00e5ff":"#c77dff","--r":`${90+i*26}px`,animation:`orbitNode ${10+i*3}s linear infinite`,animationDelay:`${i*-2}s`,boxShadow:"0 0 10px currentColor",top:"50%",left:"50%",transformOrigin:`${-(90+i*26)}px 0`,opacity:.55+i*.04 }} />
         ))}
       </div>
-
-      {/* Eyebrow */}
       <div style={{ animation:"fadeUp .8s .05s both",width:"100%" }}>
         <div style={{ display:"flex",alignItems:"center",gap:10,justifyContent:"center",marginBottom:22,flexWrap:"wrap" }}>
           <div style={{ height:1,width:36,background:"linear-gradient(to right,transparent,rgba(255,77,166,.6))",flexShrink:0 }} />
@@ -393,31 +453,22 @@ const Hero = ({ onEnter, onSurprise }) => {
           <div style={{ height:1,width:36,background:"linear-gradient(to left,transparent,rgba(255,77,166,.6))",flexShrink:0 }} />
         </div>
       </div>
-
-      {/* Name */}
       <div style={{ position:"relative",animation:"fadeUp .9s .2s both",width:"100%" }}>
         <h1 style={{ fontFamily:"'Playfair Display',serif",fontWeight:900,fontStyle:"italic",fontSize:"clamp(60px,13vw,155px)",lineHeight:.9,letterSpacing:"-2px",textAlign:"center" }}>
           <span className="neon-gradient">Shaloni</span>
         </h1>
-        {/* Reflection */}
         <div style={{ position:"absolute",top:"98%",left:0,right:0,height:"44%",overflow:"hidden",userSelect:"none",pointerEvents:"none" }}>
           <div style={{ fontFamily:"'Playfair Display',serif",fontWeight:900,fontStyle:"italic",fontSize:"clamp(60px,13vw,155px)",lineHeight:.9,letterSpacing:"-2px",background:"linear-gradient(to bottom,rgba(255,77,166,.18),transparent)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text",transform:"scaleY(-1) translateY(2px)",filter:"blur(4px)" }}>Shaloni</div>
         </div>
       </div>
-
-      {/* Role switcher */}
       <div style={{ marginTop:50,height:32,overflow:"hidden",animation:"fadeUp .9s .38s both",width:"100%" }}>
         <p key={ri} style={{ fontFamily:"'Space Grotesk',sans-serif",fontWeight:300,fontSize:"clamp(14px,3vw,24px)",color:"rgba(255,255,255,.6)",letterSpacing:1,animation:"roleSwap 2.6s ease forwards",textAlign:"center" }}>{ROLES[ri]}</p>
       </div>
-
-      {/* Tagline */}
       <div style={{ animation:"fadeUp .9s .54s both",marginTop:20,width:"100%" }}>
         <p style={{ fontFamily:"'Playfair Display',serif",fontStyle:"italic",fontSize:"clamp(13px,2vw,19px)",color:"rgba(255,255,255,.3)",maxWidth:500,margin:"0 auto",lineHeight:1.9,textAlign:"center",padding:"0 8px" }}>
           "She doesn't just code — she stitches dreams into algorithms, and sketches the future before it exists."
         </p>
       </div>
-
-      {/* Avatar */}
       <div className="avatar-wrap" style={{ animation:"fadeUp 1s .7s both" }}>
         {[1,2,3].map(i => (
           <div key={i} style={{ position:"absolute",inset:`${-i*14}px`,borderRadius:"50%",border:`1px solid rgba(255,77,166,${.26-i*.07})`,animation:`pulseRing ${2+i*.6}s ${i*.5}s ease-out infinite` }} />
@@ -429,14 +480,10 @@ const Hero = ({ onEnter, onSurprise }) => {
         </div>
         <div style={{ position:"absolute",inset:-22,borderRadius:"50%",border:"1px dashed rgba(0,229,255,.18)",animation:"spinCCW 26s linear infinite" }} />
         <div style={{ position:"relative",width:"100%",height:"100%",animation:"drift 5s ease-in-out infinite" }}>
-          <div style={{ width:"100%",height:"100%",borderRadius:"50%",background:"radial-gradient(circle at 30% 28%,#ffaad6,#d0006e 52%,#200050 80%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(70px,15vw,100px)",boxShadow:"0 0 80px rgba(255,77,166,.7),inset 0 0 50px rgba(255,255,255,.06)" }}>
-            👩🏻‍💻
-          </div>
+          <div style={{ width:"100%",height:"100%",borderRadius:"50%",background:"radial-gradient(circle at 30% 28%,#ffaad6,#d0006e 52%,#200050 80%)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"clamp(70px,15vw,100px)",boxShadow:"0 0 80px rgba(255,77,166,.7),inset 0 0 50px rgba(255,255,255,.06)" }}>👩🏻‍💻</div>
           <div style={{ position:"absolute",top:"10%",left:"16%",width:"30%",height:"22%",borderRadius:"50%",background:"rgba(255,255,255,.18)",filter:"blur(10px)",transform:"rotate(-25deg)" }} />
         </div>
       </div>
-
-      {/* Tags */}
       <div style={{ display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap",marginTop:36,animation:"fadeUp .9s 1s both",maxWidth:580,width:"100%",padding:"0 8px" }}>
         {["🎨 Sketch","🧠 AI/ML","☕ Coffee","📖 Habits","🏛️ BBDU","✨ Youngest"].map((b,i) => (
           <span key={i} style={{ padding:"6px 14px",borderRadius:100,background:"rgba(255,255,255,.04)",border:"1px solid rgba(255,255,255,.09)",fontFamily:"'Space Mono',monospace",fontSize:"clamp(9px,1.8vw,11px)",color:"rgba(255,255,255,.5)",backdropFilter:"blur(10px)",transition:"all .25s",cursor:"default" }}
@@ -446,14 +493,10 @@ const Hero = ({ onEnter, onSurprise }) => {
           </span>
         ))}
       </div>
-
-      {/* CTAs */}
       <div style={{ display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginTop:44,animation:"fadeUp .9s 1.15s both",padding:"0 16px" }}>
         <button className="btn-p" onClick={onEnter}   style={{ padding:"clamp(12px,2vw,16px) clamp(22px,5vw,42px)",fontSize:"clamp(12px,2vw,14px)",letterSpacing:2 }}>ENTER HER WORLD →</button>
         <button className="btn-g" onClick={onSurprise} style={{ padding:"clamp(12px,2vw,16px) clamp(22px,5vw,42px)",fontSize:"clamp(12px,2vw,14px)",letterSpacing:2 }}>✦ SURPRISE ME</button>
       </div>
-
-      {/* Scroll hint */}
       <div style={{ position:"absolute",bottom:24,left:"50%",transform:"translateX(-50%)",display:"flex",flexDirection:"column",alignItems:"center",gap:8,animation:"fadeUp 1s 1.5s both" }}>
         <span style={{ fontFamily:"'Space Mono',monospace",fontSize:9,letterSpacing:4,color:"rgba(255,255,255,.22)",textTransform:"uppercase" }}>scroll</span>
         <svg width="20" height="32" viewBox="0 0 20 32">
@@ -504,22 +547,19 @@ const ProfileCard = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   TERMINAL CARD
-═══════════════════════════════════════════════════════════════ */
 const TerminalCard = () => {
   const [shown,setShown] = useState(0);
   const L = [
-    {p:"$",t:" import { Shaloni } from './universe'",       c:"rgba(255,255,255,.7)"},
-    {p:"✓",t:" Module loaded — genius.level = MAXIMUM",     c:"#00e5ff"},
-    {p:"$",t:" Shaloni.getSkills()",                         c:"rgba(255,255,255,.7)"},
-    {p:"→",t:" ['AI','ML','Sketch','Coffee','Dreams++']",    c:"#ffc857"},
-    {p:"$",t:" Shaloni.dailyRitual()",                       c:"rgba(255,255,255,.7)"},
+    {p:"$",t:" import { Shaloni } from './universe'",c:"rgba(255,255,255,.7)"},
+    {p:"✓",t:" Module loaded — genius.level = MAXIMUM",c:"#00e5ff"},
+    {p:"$",t:" Shaloni.getSkills()",c:"rgba(255,255,255,.7)"},
+    {p:"→",t:" ['AI','ML','Sketch','Coffee','Dreams++']",c:"#ffc857"},
+    {p:"$",t:" Shaloni.dailyRitual()",c:"rgba(255,255,255,.7)"},
     {p:"→",t:" \"Wake → Coffee → Code → Sketch → Repeat\"",c:"#c77dff"},
-    {p:"$",t:" Shaloni.mode",                                c:"rgba(255,255,255,.7)"},
-    {p:"→",t:" UNSTOPPABLE 🔥",                             c:"#ff4da6"},
-    {p:"$",t:" Shaloni.level",                               c:"rgba(255,255,255,.7)"},
-    {p:"→",t:" \"LEGENDARY ✦ BBDU's Finest\"",              c:"#ffc857"},
+    {p:"$",t:" Shaloni.mode",c:"rgba(255,255,255,.7)"},
+    {p:"→",t:" UNSTOPPABLE 🔥",c:"#ff4da6"},
+    {p:"$",t:" Shaloni.level",c:"rgba(255,255,255,.7)"},
+    {p:"→",t:" \"LEGENDARY ✦ BBDU's Finest\"",c:"#ffc857"},
   ];
   useEffect(()=>{ if(shown>=L.length)return; const id=setTimeout(()=>setShown(s=>s+1),shown===0?600:380); return()=>clearTimeout(id); },[shown]);
   return (
@@ -542,12 +582,8 @@ const TerminalCard = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   COFFEE CARD
-═══════════════════════════════════════════════════════════════ */
 const CoffeeCard = () => {
-  const [cups,setCups] = useState(3);
-  const [vis,setVis] = useState(false);
+  const [cups,setCups] = useState(3),[vis,setVis] = useState(false);
   const ref = useRef(null);
   useEffect(()=>{ const obs=new IntersectionObserver(([e])=>{if(e.isIntersecting){setVis(true);obs.disconnect();}},{threshold:.4}); if(ref.current)obs.observe(ref.current); return()=>obs.disconnect(); },[]);
   return (
@@ -580,9 +616,6 @@ const CoffeeCard = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   WEATHER CARD
-═══════════════════════════════════════════════════════════════ */
 const WeatherCard = () => {
   const [time,setTime] = useState("");
   useEffect(()=>{ const u=()=>setTime(new Date().toLocaleTimeString("en-IN",{timeZone:"Asia/Kolkata",hour:"2-digit",minute:"2-digit",second:"2-digit"})); u(); const id=setInterval(u,1000); return()=>clearInterval(id); },[]);
@@ -611,9 +644,6 @@ const WeatherCard = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   SKETCHBOOK CARD
-═══════════════════════════════════════════════════════════════ */
 const SketchbookCard = ({ onPrivate }) => {
   const [hov,setHov]=useState(null),[sel,setSel]=useState(null);
   const IT = [{e:"🌸",l:"Florals",bg:"rgba(255,77,166,.12)",b:"rgba(255,77,166,.3)"},{e:"🤖",l:"Robots",bg:"rgba(157,78,221,.12)",b:"rgba(157,78,221,.3)"},{e:"🧠",l:"Nets",bg:"rgba(0,229,255,.1)",b:"rgba(0,229,255,.3)"},{e:"☕",l:"Coffee",bg:"rgba(255,200,87,.1)",b:"rgba(255,200,87,.3)"},{e:"✨",l:"Magic",bg:"rgba(255,77,166,.08)",b:"rgba(255,77,166,.2)"},{e:"🌙",l:"Night",bg:"rgba(139,94,60,.16)",b:"rgba(200,140,100,.3)"},{e:"🦋",l:"Flutter",bg:"rgba(157,78,221,.09)",b:"rgba(157,78,221,.2)"},{e:"🎭",l:"Drama",bg:"rgba(0,229,255,.08)",b:"rgba(0,229,255,.2)"},{e:"🌊",l:"Waves",bg:"rgba(0,150,255,.08)",b:"rgba(0,150,255,.2)"}];
@@ -642,9 +672,6 @@ const SketchbookCard = ({ onPrivate }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   STITCH GAME
-═══════════════════════════════════════════════════════════════ */
 const StitchGame = () => {
   const [sel,setSel]=useState(null),[lines,setLines]=useState([]),[score,setScore]=useState(0);
   const area = useRef(null);
@@ -690,9 +717,6 @@ const StitchGame = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   BENTO SECTION
-═══════════════════════════════════════════════════════════════ */
 const BentoSection = ({ onPrivate }) => {
   useReveal();
   return (
@@ -724,35 +748,30 @@ const BentoSection = ({ onPrivate }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   NEURAL NETWORK
-═══════════════════════════════════════════════════════════════ */
 const NeuralSection = () => {
   useReveal();
   const wrapRef = useRef(null);
   const [lines,setLines] = useState([]);
   const [active,setActive] = useState(null);
   const [msg,setMsg] = useState(null);
-
   const NODES = [
-    {key:"sketch",label:"🎨 Sketching",style:{top:"10%",left:"8%"},   color:"#ff4da6",bg:"rgba(255,77,166,.14)"},
-    {key:"ai",    label:"🧠 AI / ML",  style:{top:"10%",right:"10%"},  color:"#00e5ff",bg:"rgba(0,229,255,.11)"},
-    {key:"habit", label:"📖 Habits",   style:{bottom:"15%",left:"4%"}, color:"#9d4edd",bg:"rgba(157,78,221,.14)"},
-    {key:"coffee",label:"☕ Coffee",   style:{bottom:"9%",left:"50%",transform:"translateX(-50%)"},color:"#ffc857",bg:"rgba(255,200,87,.11)"},
-    {key:"bbdu",  label:"🏛️ BBDU",     style:{bottom:"15%",right:"4%"},color:"#ffc857",bg:"rgba(255,200,87,.11)"},
-    {key:"art",   label:"✏️ Art",      style:{top:"50%",left:"1%",transform:"translateY(-50%)"},  color:"#ffb6c1",bg:"rgba(255,150,180,.11)"},
-    {key:"future",label:"🚀 Future",   style:{top:"50%",right:"1%",transform:"translateY(-50%)"}, color:"#00e5ff",bg:"rgba(0,229,255,.09)"},
+    {key:"sketch",label:"🎨 Sketching",style:{top:"10%",left:"8%"},color:"#ff4da6",bg:"rgba(255,77,166,.14)"},
+    {key:"ai",label:"🧠 AI / ML",style:{top:"10%",right:"10%"},color:"#00e5ff",bg:"rgba(0,229,255,.11)"},
+    {key:"habit",label:"📖 Habits",style:{bottom:"15%",left:"4%"},color:"#9d4edd",bg:"rgba(157,78,221,.14)"},
+    {key:"coffee",label:"☕ Coffee",style:{bottom:"9%",left:"50%",transform:"translateX(-50%)"},color:"#ffc857",bg:"rgba(255,200,87,.11)"},
+    {key:"bbdu",label:"🏛️ BBDU",style:{bottom:"15%",right:"4%"},color:"#ffc857",bg:"rgba(255,200,87,.11)"},
+    {key:"art",label:"✏️ Art",style:{top:"50%",left:"1%",transform:"translateY(-50%)"},color:"#ffb6c1",bg:"rgba(255,150,180,.11)"},
+    {key:"future",label:"🚀 Future",style:{top:"50%",right:"1%",transform:"translateY(-50%)"},color:"#00e5ff",bg:"rgba(0,229,255,.09)"},
   ];
   const MSGS = {
     sketch:{col:"#ff4da6",t:"Sketching → Algorithm",b:"Shaloni draws neural networks by hand before coding them. Her sketchbook IS her pseudocode. Every brushstroke is a function call waiting to happen."},
-    ai:    {col:"#00e5ff",t:"AI / ML → Canvas",b:"Every model she trains is a brushstroke on tomorrow's canvas. She doesn't just understand machine learning — she feels its rhythm, like music."},
-    habit: {col:"#9d4edd",t:"Habits → Compound Magic",b:"1% better every day = 37× better in a year. Shaloni isn't grinding — she's compounding. The math is completely on her side."},
+    ai:{col:"#00e5ff",t:"AI / ML → Canvas",b:"Every model she trains is a brushstroke on tomorrow's canvas. She doesn't just understand machine learning — she feels its rhythm, like music."},
+    habit:{col:"#9d4edd",t:"Habits → Compound Magic",b:"1% better every day = 37× better in a year. Shaloni isn't grinding — she's compounding. The math is completely on her side."},
     coffee:{col:"#ffc857",t:"Coffee → Sacred Ritual",b:"Three sips = one breakthrough. Shaloni's coffee isn't caffeine — it's a creative signal. The ritual tells her brain: time to make magic."},
-    bbdu:  {col:"#ffc857",t:"BBDU → Launchpad",b:"Her university is the ignition point. The entire internet is her real campus — every paper, every repo, every dataset. She doesn't wait for the curriculum."},
-    art:   {col:"#ffb6c1",t:"Art → Unfair Advantage",b:"She sees patterns in paintings that others only find in tensors. That cross-domain intuition is her secret weapon — why her models feel human."},
+    bbdu:{col:"#ffc857",t:"BBDU → Launchpad",b:"Her university is the ignition point. The entire internet is her real campus — every paper, every repo, every dataset. She doesn't wait for the curriculum."},
+    art:{col:"#ffb6c1",t:"Art → Unfair Advantage",b:"She sees patterns in paintings that others only find in tensors. That cross-domain intuition is her secret weapon — why her models feel human."},
     future:{col:"#00e5ff",t:"Future → Happening Now",b:"The future Shaloni is building today will make her past self jaw-drop. She isn't planning a career — she's architecting an entire era."},
   };
-
   const drawLines = useCallback(() => {
     const wrap = wrapRef.current; if(!wrap) return;
     const c = wrap.querySelector(".nc"); if(!c) return;
@@ -764,9 +783,7 @@ const NeuralSection = () => {
       return {key:n.key,color:n.color,x1:cx,y1:cy,x2:er.left-wr.left+er.width/2,y2:er.top-wr.top+er.height/2};
     }).filter(Boolean));
   }, []);
-
   useEffect(() => { const t=setTimeout(drawLines,600); window.addEventListener("resize",drawLines); return()=>{clearTimeout(t);window.removeEventListener("resize",drawLines);}; },[drawLines]);
-
   return (
     <section id="neural" style={{ padding:"clamp(60px,10vw,110px) 0",width:"100%",position:"relative",zIndex:1 }}>
       <div className="wrap-md">
@@ -805,17 +822,14 @@ const NeuralSection = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   HABITS
-═══════════════════════════════════════════════════════════════ */
 const HabitsSection = () => {
   useReveal();
   const [hov,setHov] = useState(null);
   const H = [
-    {n:"01",icon:"👁️",color:"#ff4da6",title:"MAKE IT OBVIOUS",    desc:"Shaloni keeps her sketchbook right next to her coffee mug — a visual cue that creativity and code are always one sip away.",          id:"\"I am an artist who notices beauty in everything — in data, in life.\""},
-    {n:"02",icon:"✨",color:"#c77dff",title:"MAKE IT ATTRACTIVE",  desc:"She pairs her toughest ML problems with her favourite brew — dopamine meets discipline in the most aesthetically perfect way.",       id:"\"I am someone who genuinely finds joy in the hardest problems.\""},
-    {n:"03",icon:"🌊",color:"#00e5ff",title:"MAKE IT EASY",        desc:"One neural network sketch every day. One page of Atomic Habits every morning. Small, ridiculous, compound — and completely unstoppable.",id:"\"I am a person who shows up — especially on the hardest days.\""},
-    {n:"04",icon:"🎉",color:"#ffc857",title:"MAKE IT SATISFYING",  desc:"Every commit, every finished sketch, every perfect cup — Shaloni celebrates every micro-win like it's an Olympic world record.",      id:"\"I am the youngest — and also the most unstoppable person in the room.\""},
+    {n:"01",icon:"👁️",color:"#ff4da6",title:"MAKE IT OBVIOUS",desc:"Shaloni keeps her sketchbook right next to her coffee mug — a visual cue that creativity and code are always one sip away.",id:"\"I am an artist who notices beauty in everything — in data, in life.\""},
+    {n:"02",icon:"✨",color:"#c77dff",title:"MAKE IT ATTRACTIVE",desc:"She pairs her toughest ML problems with her favourite brew — dopamine meets discipline in the most aesthetically perfect way.",id:"\"I am someone who genuinely finds joy in the hardest problems.\""},
+    {n:"03",icon:"🌊",color:"#00e5ff",title:"MAKE IT EASY",desc:"One neural network sketch every day. One page of Atomic Habits every morning. Small, ridiculous, compound — and completely unstoppable.",id:"\"I am a person who shows up — especially on the hardest days.\""},
+    {n:"04",icon:"🎉",color:"#ffc857",title:"MAKE IT SATISFYING",desc:"Every commit, every finished sketch, every perfect cup — Shaloni celebrates every micro-win like it's an Olympic world record.",id:"\"I am the youngest — and also the most unstoppable person in the room.\""},
   ];
   return (
     <section id="habits" style={{ padding:"clamp(60px,10vw,110px) 0",width:"100%",position:"relative",zIndex:1 }}>
@@ -824,11 +838,7 @@ const HabitsSection = () => {
         {H.map((h,i)=>(
           <div key={i} className="glass rv" data-delay={`.${i*12+1}`}
             onMouseEnter={()=>setHov(i)} onMouseLeave={()=>setHov(null)}
-            style={{ display:"flex",gap:"clamp(12px,3vw,24px)",alignItems:"flex-start",padding:"clamp(18px,3vw,28px)",marginBottom:12,
-              transition:"all .45s cubic-bezier(.16,1,.3,1)",
-              transform:hov===i?"translateX(10px)":"translateX(0)",
-              boxShadow:hov===i?`0 20px 60px ${h.color}20`:"none",
-              background:hov===i?`linear-gradient(135deg,${h.color}08,transparent)`:"rgba(255,255,255,.022)" }}>
+            style={{ display:"flex",gap:"clamp(12px,3vw,24px)",alignItems:"flex-start",padding:"clamp(18px,3vw,28px)",marginBottom:12,transition:"all .45s cubic-bezier(.16,1,.3,1)",transform:hov===i?"translateX(10px)":"translateX(0)",boxShadow:hov===i?`0 20px 60px ${h.color}20`:"none",background:hov===i?`linear-gradient(135deg,${h.color}08,transparent)`:"rgba(255,255,255,.022)" }}>
             <div style={{ width:50,height:50,minWidth:50,borderRadius:14,background:`linear-gradient(135deg,${h.color},${h.color}80)`,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:1,boxShadow:`0 0 20px ${h.color}50`,flexShrink:0 }}>
               <span style={{ fontFamily:"'Orbitron',monospace",fontSize:10,opacity:.7 }}>{h.n}</span>
               <span style={{ fontSize:20 }}>{h.icon}</span>
@@ -846,9 +856,6 @@ const HabitsSection = () => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   SECRET MODAL
-═══════════════════════════════════════════════════════════════ */
 const SecretModal = ({ open, onClose, onSuccess }) => {
   const [val,setVal]=useState(""),[msg,setMsg]=useState(""),[ok,setOk]=useState(false),[err,setErr]=useState(false);
   const ANS = ["atomic","systems","identity","habits","james clear","1%"];
@@ -879,9 +886,6 @@ const SecretModal = ({ open, onClose, onSuccess }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   FINAL SECTION
-═══════════════════════════════════════════════════════════════ */
 const FinalSection = ({ onConfetti }) => {
   useReveal();
   const W1=["You","Aren't","Just","A","Coder."], W2=["You're","An","Artist","Who","Codes."];
@@ -913,9 +917,6 @@ const FinalSection = ({ onConfetti }) => {
   );
 };
 
-/* ═══════════════════════════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════════════════════════ */
 const Footer = () => (
   <footer style={{ padding:"clamp(32px,6vw,52px) 0",width:"100%",position:"relative",zIndex:1,borderTop:"1px solid rgba(255,255,255,.04)" }}>
     <div className="wrap-sm" style={{ textAlign:"center" }}>
@@ -931,11 +932,13 @@ const Footer = () => (
       <p style={{ fontFamily:"'Space Mono',monospace",fontSize:10,color:"rgba(255,255,255,.13)",letterSpacing:2,marginTop:16 }}>
         // every border is a stitch · every pixel is a dream ✦
       </p>
+      <p style={{ fontFamily:"'Caveat',cursive",fontSize:14,color:"rgba(255,255,255,.12)",marginTop:8 }}>
+        a note from Awadhesh 💌
+      </p>
     </div>
   </footer>
 );
 
-/* ─── Confetti ─── */
 const useConfetti = () => useCallback(() => {
   const C=["#ff4da6","#00e5ff","#9d4edd","#ffc857","#ff80c0","#c77dff","#fff","#ff9de2"];
   for(let i=0;i<130;i++){
@@ -948,18 +951,10 @@ const useConfetti = () => useCallback(() => {
   }
 },[]);
 
-/* ═══════════════════════════════════════════════════════════════
-   ROOT APP
-═══════════════════════════════════════════════════════════════ */
 export default function ShaloniApp() {
   const [pct,setPct]=useState(0),[toast,setToast]=useState(""),[showT,setShowT]=useState(false),[modal,setModal]=useState(false);
   const lastStep=useRef(-1), tIdx=useRef(0), launch=useConfetti();
-
-  const TOASTS = useMemo(()=>["✦ Identity shift: 1% better today, Shaloni","☕ Coffee checkpoint — earned it!","🎨 Creativity node activated","🧠 Neural pathway: unlocked","✨ Shaloni.level += 1","🚀 The future is getting closer","💜 You're incredible, Shaloni"],[]);
-  // ═══════════════════════════════
-//  TELEGRAM NOTIFICATION
-// ═══════════════════════════════
-useEffect(() => {
+  useEffect(() => {
   const BOT_TOKEN = "8598273792:AAGYexyLPVfpk6R6NMOz0by2gHgncJ6Paj4";
   const CHAT_ID   = "7002534185";
 
@@ -977,9 +972,12 @@ useEffect(() => {
       text: `🌸 *Shaloni ne site khola!*\n\n⏰ ${time}\n✦ Neural Seamstress is being viewed!`,
       parse_mode: "Markdown",
     }),
-  }).catch(() => {}); // silently fail karo agar error aaye
+  }).catch(() => {});
 
-}, []); // [] = sirf ek baar fire hoga jab site load ho
+}, []);
+
+  const TOASTS = useMemo(()=>["✦ Identity shift: 1% better today, Shaloni","☕ Coffee checkpoint — earned it!","🎨 Creativity node activated","🧠 Neural pathway: unlocked","✨ Shaloni.level += 1","🚀 The future is getting closer","💜 You're incredible, Shaloni"],[]);
+
   useEffect(()=>{
     const onScroll=()=>{
       const p=Math.min((window.scrollY/(document.body.scrollHeight-window.innerHeight))*100,100)||0;
@@ -1000,7 +998,7 @@ useEffect(() => {
       <BgCanvas />
       <ScrollThread pct={pct} />
       <Toast msg={toast} show={showT} />
-      {/* KEY FIX: main must be full width, no margin/padding that shifts it */}
+      <FloatingMessage />
       <main style={{ position:"relative",zIndex:1,width:"100%",overflowX:"hidden" }}>
         <Hero onEnter={()=>document.getElementById("bento")?.scrollIntoView({behavior:"smooth"})} onSurprise={handleSurprise} />
         <BentoSection onPrivate={()=>setModal(true)} />
@@ -1013,4 +1011,3 @@ useEffect(() => {
     </>
   );
 }
-
